@@ -2,12 +2,17 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
 from ....services.visit_counter import VisitCounterService
 from ....schemas.counter import VisitCount
+from app.logging import logger
 
 router = APIRouter()
 
-# Dependency to get VisitCounterService instance
+_visit_counter_service_instance = None
+
 def get_visit_counter_service():
-    return VisitCounterService()
+    global _visit_counter_service_instance
+    if _visit_counter_service_instance is None:
+        _visit_counter_service_instance = VisitCounterService()
+    return _visit_counter_service_instance
 
 @router.post("/visit/{page_id}")
 async def record_visit(
@@ -29,6 +34,7 @@ async def get_visits(
     """Get visit count for a website"""
     try:
         count = await counter_service.get_visit_count(page_id)
-        return VisitCount(page_id=page_id, count=count)
+        served_via = "in_memory"
+        return VisitCount(page_id=page_id, count=count, served_via=served_via)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 
