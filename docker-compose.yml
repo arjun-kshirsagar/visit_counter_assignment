@@ -12,6 +12,8 @@ services:
       - redis1
       - redis2
       - redis3
+    volumes:
+      - .:/app # Mounting the project directory is neccessary bcoz you dont have to keep building again and again ~ Rohit
 
   redis1:
     image: redis:7
