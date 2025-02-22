@@ -4,4 +4,4 @@ from typing import Dict, List, Any
 class VisitCount(BaseModel):
     page_id: str
     count: int
-    served_via: str
+    served_via: str = "redis"

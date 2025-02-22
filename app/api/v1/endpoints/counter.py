@@ -34,7 +34,6 @@ async def get_visits(
     """Get visit count for a website"""
     try:
         count = await counter_service.get_visit_count(page_id)
-        served_via = "in_memory"
-        return VisitCount(page_id=page_id, count=count, served_via=served_via)
+        return VisitCount(page_id=page_id, count=count)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

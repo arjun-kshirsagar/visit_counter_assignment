@@ -2,6 +2,7 @@ import redis
 from typing import Dict, List, Optional, Any
 from .consistent_hash import ConsistentHash
 from .config import settings
+from app.logging import logger
 
 class RedisManager:
     def __init__(self):
@@ -16,7 +17,9 @@ class RedisManager:
         # TODO: Initialize connection pools for each Redis node
         # 1. Create connection pools for each Redis node
         # 2. Initialize Redis clients
-        pass
+        for node in redis_nodes:    
+            self.connection_pools[node] = redis.ConnectionPool.from_url(node)
+            self.redis_clients[node] = redis.Redis(connection_pool=self.connection_pools[node])
 
     async def get_connection(self, key: str) -> redis.Redis:
         """
@@ -31,7 +34,11 @@ class RedisManager:
         # TODO: Implement getting the appropriate Redis connection
         # 1. Use consistent hashing to determine which node should handle this key
         # 2. Return the Redis client for that node
-        pass
+        # node = self.consistent_hash.get_node(key)
+        # return self.redis_clients[node]
+
+        first_node = next(iter(self.redis_clients))  # Get the first node in the dictionary for Task2
+        return self.redis_clients[first_node]
 
     async def increment(self, key: str, amount: int = 1) -> int:
         """
@@ -48,7 +55,14 @@ class RedisManager:
         # 1. Get the appropriate Redis connection
         # 2. Increment the counter
         # 3. Handle potential failures and retries
-        return 0
+        try:
+            connection = await self.get_connection(key)
+            redis_key = key
+            connection.incr(redis_key)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to increment counter: {e}")
+            raise e
 
     async def get(self, key: str) -> Optional[int]:
         """
@@ -64,4 +78,9 @@ class RedisManager:
         # 1. Get the appropriate Redis connection
         # 2. Retrieve the value
         # 3. Handle potential failures and retries
-        return None
+        connection = await self.get_connection(key)
+
+        valid_key = connection.exists(key) # return 1 if key exists else 0
+        if valid_key == 0:
+            return 0
+        return connection.get(key)
