@@ -37,9 +37,8 @@ class RedisManager:
         # 2. Return the Redis client for that node
         # node = self.consistent_hash.get_node(key)
         # return self.redis_clients[node]
-        raise Exception("Please implement RedisManager.get_connection")
-        # first_node = next(iter(self.redis_clients))  # Get the first node in the dictionary for Task2
-        # return self.redis_clients[first_node]
+        first_node = next(iter(self.redis_clients))  # Get the first node in the dictionary for Task2
+        return self.redis_clients[first_node]
 
     async def increment(self, key: str, amount: int = 1, retries: int = 3) -> int:
         """
@@ -85,10 +84,6 @@ class RedisManager:
         # 3. Handle potential failures and retries
         # connection = await self.get_connection(key)
 
-        # valid_key = connection.exists(key) # return 1 if key exists else 0
-        # if valid_key == 0:
-        #     return 0
-        # return connection.get(key)
         for attempt in range(retries):
             try:
                 connection = await self.get_connection(key)
@@ -102,3 +97,8 @@ class RedisManager:
                     await asyncio.sleep(2) # sleep for 2 seconds
                 else:
                     raise e
+
+    async def insert_batch_to_redis(self, data: Dict[str, int]) -> None:
+        """Write data to Redis"""
+        for key, value in data.items():
+            await self.increment(key, value)
