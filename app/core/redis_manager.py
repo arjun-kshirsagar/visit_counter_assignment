@@ -37,8 +37,11 @@ class RedisManager:
         # 2. Return the Redis client for that node
         # node = self.consistent_hash.get_node(key)
         # return self.redis_clients[node]
-        first_node = next(iter(self.redis_clients))  # Get the first node in the dictionary for Task2
-        return self.redis_clients[first_node]
+        # first_node = next(iter(self.redis_clients))  # Get the first node in the dictionary for Task2
+        # return self.redis_clients[first_node]
+
+        node = self.consistent_hash.get_node(key)
+        return self.redis_clients[node]
 
     async def increment(self, key: str, amount: int = 1, retries: int = 3) -> int:
         """
