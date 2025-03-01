@@ -1,3 +1,4 @@
+import asyncio
 import redis
 from typing import Dict, List, Optional, Any
 from .consistent_hash import ConsistentHash
@@ -36,11 +37,11 @@ class RedisManager:
         # 2. Return the Redis client for that node
         # node = self.consistent_hash.get_node(key)
         # return self.redis_clients[node]
+        raise Exception("Please implement RedisManager.get_connection")
+        # first_node = next(iter(self.redis_clients))  # Get the first node in the dictionary for Task2
+        # return self.redis_clients[first_node]
 
-        first_node = next(iter(self.redis_clients))  # Get the first node in the dictionary for Task2
-        return self.redis_clients[first_node]
-
-    async def increment(self, key: str, amount: int = 1) -> int:
+    async def increment(self, key: str, amount: int = 1, retries: int = 3) -> int:
         """
         Increment a counter in Redis
         
@@ -55,16 +56,20 @@ class RedisManager:
         # 1. Get the appropriate Redis connection
         # 2. Increment the counter
         # 3. Handle potential failures and retries
-        try:
-            connection = await self.get_connection(key)
-            redis_key = key
-            connection.incr(redis_key)
-            return True
-        except Exception as e:
-            logger.error(f"Failed to increment counter: {e}")
-            raise e
+        for attempt in range(retries):
+            try:
+                connection = await self.get_connection(key)
+                redis_key = key
+                connection.incrby(redis_key, amount)
+                return True
+            except Exception as e:
+                logger.error(f"Attempt {attempt + 1}: Failed to increment counter: {e}")
+                if attempt < retries - 1:
+                    await asyncio.sleep(2) # sleep for 2 seconds
+                else:
+                    raise e
 
-    async def get(self, key: str) -> Optional[int]:
+    async def get(self, key: str, retries: int = 3) -> Optional[int]:
         """
         Get value for a key from Redis
         
@@ -78,9 +83,22 @@ class RedisManager:
         # 1. Get the appropriate Redis connection
         # 2. Retrieve the value
         # 3. Handle potential failures and retries
-        connection = await self.get_connection(key)
+        # connection = await self.get_connection(key)
 
-        valid_key = connection.exists(key) # return 1 if key exists else 0
-        if valid_key == 0:
-            return 0
-        return connection.get(key)
+        # valid_key = connection.exists(key) # return 1 if key exists else 0
+        # if valid_key == 0:
+        #     return 0
+        # return connection.get(key)
+        for attempt in range(retries):
+            try:
+                connection = await self.get_connection(key)
+                valid_key = connection.exists(key)  # return 1 if key exists else 0
+                if valid_key == 0:
+                    return 0
+                return int(connection.get(key))
+            except Exception as e:
+                logger.error(f"Attempt {attempt + 1}: Failed to get value: {e}")
+                if attempt < retries - 1:
+                    await asyncio.sleep(2) # sleep for 2 seconds
+                else:
+                    raise e

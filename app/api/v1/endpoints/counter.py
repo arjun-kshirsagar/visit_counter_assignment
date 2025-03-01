@@ -6,12 +6,9 @@ from app.logging import logger
 
 router = APIRouter()
 
-_visit_counter_service_instance = None
+_visit_counter_service_instance = VisitCounterService()
 
 def get_visit_counter_service():
-    global _visit_counter_service_instance
-    if _visit_counter_service_instance is None:
-        _visit_counter_service_instance = VisitCounterService()
     return _visit_counter_service_instance
 
 @router.post("/visit/{page_id}")
